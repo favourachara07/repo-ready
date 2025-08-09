@@ -1,0 +1,412 @@
+{
+  "name": "AI-Powered Student Submission Notifier",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Create a short, friendly WhatsApp message (<=25 words) to {{$json.studentName}} confirming we received their submission for {{$json.repoFullName}}.\n",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        816,
+        124
+      ],
+      "id": "31c1bb15-eeb5-4ecf-a0b9-d36904718abc",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "=={{ $json[\"memoryKey\"] }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        952,
+        348
+      ],
+      "id": "ad2c59d6-0986-4d6f-a00f-11c3925d919c",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        824,
+        348
+      ],
+      "id": "4c0000d9-8287-470c-9cc7-1b824d60b918",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "dABK7jAdQzI4T2SV",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Run Once\nconst payloadWrapper = items[0].json || {};\n// GitHub test payloads sometimes wrap the real payload in `body`\nconst body = payloadWrapper.body || payloadWrapper;\n\n// extract fields from the actual GitHub body\nconst repoFullName = body.repository?.full_name || '';\nconst repoName     = body.repository?.name || '';\nconst commitSha    = body.head_commit?.id || body.after || '';\nconst githubUser   = body.head_commit?.author?.username ||\n                     body.pusher?.name ||\n                     body.sender?.login || '';\n\n// optional: detect initial commit (not required)\nconst beforeHash = body.before || '';\nconst isInitialCommit = beforeHash === '0000000000000000000000000000000000000000';\n\n// memory key (if you still use Simple Memory)\nconst memoryKey = `${repoFullName}::first-submission`;\n\n// return a single consolidated item\nreturn [{\n  json: {\n    repoFullName,\n    repoName,\n    commitSha,\n    githubUser,\n    beforeHash,\n    isInitialCommit,\n    memoryKey,\n    _debug_rawBody: body\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        144,
+        0
+      ],
+      "id": "9fa66db1-79a9-4afb-92ee-8a9563ba8d1b",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "/github-push",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -80,
+        0
+      ],
+      "id": "604f63cb-e670-4c71-85d4-d67bc51210b5",
+      "name": "Webhook",
+      "webhookId": "c5fa0420-8d9d-4c7c-8bae-ca77ac711afc"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "18BAClv-cy7kHFT8P_0iSP7FVnJpR1ZfBqSCFq2M0Lgc",
+          "mode": "list",
+          "cachedResultName": "Abixa",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/18BAClv-cy7kHFT8P_0iSP7FVnJpR1ZfBqSCFq2M0Lgc/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/18BAClv-cy7kHFT8P_0iSP7FVnJpR1ZfBqSCFq2M0Lgc/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        368,
+        0
+      ],
+      "id": "aab9a0b3-2c75-4bd7-a741-2ebe6b7eb786",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "GVxr2HsRD39Hgu2r",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0c690d76-a5a0-417c-856e-9bd5c0973ff6",
+              "name": "studentName",
+              "value": "={{$node[\"Get row(s) in sheet\"].json[\"StudentName\"]}}",
+              "type": "string"
+            },
+            {
+              "id": "47cb4588-7513-4866-8d00-b48f42e9cd74",
+              "name": "phoneNumber",
+              "value": "={{$node[\"Code\"].json[\"repoFullName\"]}}",
+              "type": "string"
+            },
+            {
+              "id": "21c6f13f-924b-4eae-85c4-888852ea6118",
+              "name": "repoFullName",
+              "value": "={{$node[\"Code\"].json[\"repoFullName\"]}}",
+              "type": "string"
+            },
+            {
+              "id": "ddfcd0b8-fd6e-49fd-9dd1-7ffb0186121a",
+              "name": "githubUser",
+              "value": "={{$node[\"Code\"].json[\"githubUser\"]}}",
+              "type": "string"
+            },
+            {
+              "id": "bb5bc478-332f-430f-993e-642713a06b51",
+              "name": "phoneNumber",
+              "value": "={{$node[\"Get row(s) in sheet\"].json[\"Phone\"]}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        592,
+        0
+      ],
+      "id": "d6c4d43f-22a9-4b36-85b2-3021e19744c8",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "jsCode": "const p = items[0].json || {};\nconst message = p.generatedMessage ||\n                p.text ||\n                p.output ||\n                p.content ||\n                (p.choices && p.choices[0] && (p.choices[0].text || (p.choices[0].message && p.choices[0].message.content))) ||\n                '';\nreturn [{\n    json: {\n        ...p, // This line ensures all original fields (including phoneNumber) are passed through\n        generatedMessage: message\n    }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1392,
+        0
+      ],
+      "id": "30c4d5d3-9bba-4004-85d6-ef701cea0ae4",
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = (items[0].json.phoneNumber || '').toString().trim();\n\n// Add + if missing and make sure it's international format\nlet sanitized = raw;\nif (raw && !raw.startsWith('+')) {\n  sanitized = '+' + raw;\n}\n\nreturn [{\n  json: {\n    ...items[0].json,\n    sanitizedPhone: sanitized\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1616,
+        0
+      ],
+      "id": "cd97c0f6-314c-4a9d-a075-28d112e37220",
+      "name": "Code2"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1168,
+        0
+      ],
+      "id": "aa0777d1-0241-4955-be47-b7bd5f328dc9",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "resource": "__CUSTOM_API_CALL__",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        224,
+        256
+      ],
+      "id": "54e53c4b-6ecf-432c-b0bc-7fddd07eac05",
+      "name": "Twilio",
+      "credentials": {
+        "twilioApi": {
+          "id": "dLephosQ0YcWTkNc",
+          "name": "Twilio account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.twilio.com/2010-04-01/Accounts/USedb00d0c87fa999c51d370397d01c966/Messages.json",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "twilioApi",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "To",
+              "value": "=whatsapp:{{$json[\"sanitizedPhone\"]}}"
+            },
+            {
+              "name": "From",
+              "value": "=whatsapp:+14155238886"
+            },
+            {
+              "name": "Body",
+              "value": "={{$json[\"generatedMessage\"]}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1840,
+        0
+      ],
+      "id": "f9cc1aac-c6dd-4a58-974b-2ef12820f093",
+      "name": "HTTP Request",
+      "credentials": {
+        "twilioApi": {
+          "id": "dLephosQ0YcWTkNc",
+          "name": "Twilio account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Channels of receiving messages \n-Via Sms(achieved with Twilio node)\n-Via Whatsapp (achieved with HTTP request node)",
+        "height": 208
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        400,
+        208
+      ],
+      "id": "a8564288-c28f-4db1-8f0d-66b2c8eed936",
+      "name": "Sticky Note"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "Code2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code2": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Twilio": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "27dae81b-7592-43ce-885e-76257b6d3c0d",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "a9b3274ca6f32b8038155016e7fd02ec8d561cdc322e386ecb7b56af71bcaec5"
+  },
+  "id": "gCaIEclbmL2vnr27",
+  "tags": []
+}
