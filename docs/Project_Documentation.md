@@ -1,4 +1,4 @@
-# Project Documentation: AI-Powered Student Submission Notifier
+# Project Documentation: (RepoReady)AI-Powered Student Submission Notifier
 
 This document provides an in-depth guide to setting up, configuring, and
 understanding the **AI-Powered Student Submission Notifier** workflow. It's designed
