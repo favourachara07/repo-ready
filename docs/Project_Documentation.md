@@ -89,9 +89,9 @@ Classroom.
 
 ```
 ● Purpose: To receive push event payloads from GitHub.
-● Configuration:
 ```
 
+● Configuration:
 1. Click on the **Webhook** node.
 2. Set the **HTTP Method** to POST.
 3. Under **Webhook URLs** , you will see a unique URL. Copy this URL.
@@ -116,6 +116,7 @@ payload.
 
 ● Purpose: To extract repoFullName, repoName, commitSha, and githubUser from
 the incoming GitHub webhook payload. This simplifies downstream data access.
+
 ● Code:
 ```js
 // Extract relevant data from the GitHub webhook payload
@@ -172,9 +173,9 @@ username.
 ```
 ● Purpose: To retrieve StudentName and Phone number using the
 GitHubUsername from the previous node.
-● Configuration:
 ```
 
+● Configuration:
 1. **Credentials:** Select or create your **Google Sheets API credential**. Ensure it
    has read access to your spreadsheet.
 
@@ -199,8 +200,9 @@ generation and communication.
 ● Purpose: To ensure that all relevant data (studentName, phoneNumber,
 repoFullName, githubUser) is present and correctly mapped for the downstream
 AI Agent and messaging nodes.
-● Configuration:
 ```
+
+● Configuration:
 
 1. **Mode:** Manual Mapping.
 2. **Fields to Set:** Add the following fields:
@@ -222,25 +224,24 @@ engaging responses.
 ● Purpose: To generate a friendly and personalized submission confirmation
 message for the student.
 ● Configuration:
-```
 
-1. **Model:** Select your preferred Google Gemini Chat Model (e.g., Google Gemini
+1. Model: Select your preferred Google Gemini Chat Model (e.g., Google Gemini
    Chat Model). Ensure you have the necessary Google credentials configured in
    n8n.
 
-2. **Chat Model Parameters:**
-   - **Prompt:** This is where you instruct the AI on what message to generate.
+2. Chat Model Parameters:
+   - Prompt: This is where you instruct the AI on what message to generate.
      Use expressions to inject dynamic data.
      Generate a short, friendly, and enthusiastic message to a student
      confirming their project submission.
      The student's name is: {{$json.studentName}}
      The repository name is: {{$json.repoFullName}}
      Make sure to congratulate them and acknowledge their effort.
-3. **Memory:** Use a Simple Memory for basic conversational context if needed,
+3. Memory: Use a Simple Memory for basic conversational context if needed,
    though for a one-off notification, it might be less critical.
 4. The output of this node will contain the generated message, usually in a field
    like output or generatedMessage.
-
+```
 **4.6 Merge Node**
 
 Crucial for combining data streams when your workflow branches.
@@ -250,14 +251,13 @@ Crucial for combining data streams when your workflow branches.
 message (from AI Agent) into a single item that contains all necessary information
 for sending the notification.
 ● Configuration:
-```
 
 1. **Mode:** Combine.
 2. **Combine By:** Position.
    - This ensures that the first item from Input 1 (Edit Fields) is combined with
      the first item from Input 2 (AI Agent). This is critical because both
      branches produce a single item that needs to be unified.
-
+```
 **4.7 Code1 Node (Normalize AI Output)**
 
 This node standardizes the field name for the generated message, making it
@@ -268,6 +268,7 @@ consistent for downstream use.
 under the generatedMessage field, regardless of how the AI Agent node (or other
 LLMs) might name its output field. It also passes through all other original fields
 from the merged data.
+
 ● Code:
 ```js
 // Get the first item from the incoming data
@@ -305,6 +306,7 @@ services.
 
 ● Purpose: To take the phoneNumber from the previous node, convert it to a string,
 trim any whitespace, and ensure it starts with a + for E.164 compliance.
+
 ● Code:
 ```js
 // Get the raw phone number from the input item
@@ -343,25 +345,18 @@ differs based on whether you're sending SMS or WhatsApp.
 **4.9.1 SMS Configuration (Twilio Node)**
 
 If you want to send SMS messages, use the dedicated Twilio node in SMS mode.
-
+```
 ● Node Type: Send an SMS/MMS/WhatsApp message (Twilio node)
-
 ● Credentials: Select your Twilio account credential.
-
 ● Resource: SMS
-
 ● Operation: Send
-
 ● From: Your Twilio SMS-enabled phone number (e.g., +14783304581).
-
 ● To: ={{$json["sanitizedPhone"]}} (Pulls the sanitized phone number from Code
 node's output).
-
 ● Message: ={{$json["generatedMessage"]}} (Pulls the AI-generated message
 from Code1 node's output).
-
 ● To Whatsapp: Ensure this toggle is OFF.
-
+```
 
 **4.9.2 WhatsApp Configuration (HTTP Request Node)**
 
