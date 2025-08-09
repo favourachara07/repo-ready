@@ -1,4 +1,4 @@
-# AI-Powered Student Submission Notifier
+# RepoReady: AI-Powered Student Submission Notifier
 
 An intelligent automation built with n8n that provides real-time, personalized
 submission confirmations to bootcamp students via SMS or WhatsApp, enhancing the
